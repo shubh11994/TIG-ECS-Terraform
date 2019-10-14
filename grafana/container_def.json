@@ -1,0 +1,17 @@
+[
+  {
+    "name": "grafana",
+    "cpu": 512,
+    "memory": 1024,
+    "memoryReservation": 512,
+    "image": "grafana/grafana:latest",
+    "essential": true,
+    "portMappings": [
+      {
+        "hostPort": 3000,
+        "containerPort": 3000,
+        "protocol": "tcp"
+      }
+    ]
+  }
+]

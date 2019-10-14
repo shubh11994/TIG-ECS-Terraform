@@ -1,0 +1,28 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:*",
+        "elasticloadbalancing:Describe*",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+	"elasticloadbalancing:RegisterTargets",
+	"elasticloadbalancing:DeregisterTargets",
+        "ec2:Describe*",
+        "autoscaling:Describe*",
+        "cloudwatch:*",
+        "logs:*",
+        "sns:*",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:GetRole",
+	"ec2:AuthorizeSecurityGroupIngress"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
