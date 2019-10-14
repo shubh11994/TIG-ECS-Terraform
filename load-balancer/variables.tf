@@ -1,0 +1,10 @@
+variable "vpcid" {}
+variable "maintenance_cidr" {}
+variable "maintenance_az" {}
+variable "maintenance_name" {}
+variable "aws_profile" {}
+variable "aws_region" {}
+variable "devops_alb_sg" {}
+variable "maintenance_cidr_2" {}
+variable "maintenance_name_2" {}
+variable "maintenance_az_2" {}

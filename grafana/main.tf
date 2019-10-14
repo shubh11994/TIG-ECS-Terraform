@@ -1,65 +1,54 @@
-resource "aws_lb_target_group" "spot_tg" {
-  name     = "spot-tg"
-  port     = 80
-  target_type = "ip"
-  protocol = "HTTP"
-  vpc_id   = "${var.vpc_id}"
-  deregistration_delay = "60"
-  health_check = {
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    interval            = "10"
-    path                = "/login"
-    timeout             = "2"
-    healthy_threshold   = "2"
-    unhealthy_threshold = "2"
-    matcher             = "200"
-  }
-  tags = {
-    Terraform = "true"
-    Environment = "staging"
-  }
-}
-
-resource "aws_lb_listener_rule" "sample" {
-  listener_arn = "arn:aws:elasticloadbalancing:ap-south-1:489284938287:listener/app/Staging-ECS-ALB/ac6241e2bd3e7d88/754ee7ab935f5dbf"
-  priority     = 85
-
-  action {
-    type             = "forward"
-    target_group_arn = "${aws_lb_target_group.spot_tg.arn}"
-  }
-
-  condition {
-    field  = "host-header"
-    values = ["spot.staging-we.com"]
-  }
-}
-
 resource "aws_ecs_task_definition" "task_defn" {
   family                              = "${var.family}"
-  container_definitions               = "${file("fargate-service/container_def.json")}"
+  container_definitions               = "${file("./grafana/container_def.json")}"
   task_role_arn                       = "${var.task_role_arn}"
   execution_role_arn                  = "${var.task_role_arn}"
   network_mode                        = "${var.network_mode}"
   requires_compatibilities            = ["${var.launch_type}"]
-  cpu = "1024"
-  memory = "2048"
 }
-
-resource "aws_ecs_service" "sample" {
-  name            = "nginx"
-  cluster         = "${var.cluster_ID}"
-  task_definition = "${aws_ecs_task_definition.task_defn.arn}"
-  desired_count   = 1
-  #iam_role        = "arn:aws:iam::489284938287:role/ecsServiceRole"
-  launch_type     = "FARGATE"
-  network_configuration {
-    subnets = ["subnet-03055638aa52f42a4", "subnet-01ea51c1e6ddf3d4f"]
-  }
+/*------------------------------Service-------------------------------------------------------------*/
+resource "aws_ecs_service" "service" {
+  name                                = "${var.family}"
+  task_definition                     = "${aws_ecs_task_definition.task_defn.arn}"
+  launch_type                         = "${var.launch_type}"
+  desired_count                       = "${var.desired_count}"
+  scheduling_strategy                 = "${var.scheduling_strategy}"
+  cluster                             = "${var.cluster_ID}"
+  iam_role                            = "arn:aws:iam::489284938287:role/ecsServiceRole"
+  deployment_maximum_percent          = "${var.deployment_maximum_percent}"
+  deployment_minimum_healthy_percent  = "${var.deployment_minimum_healthy_percent}"
+  health_check_grace_period_seconds   = "${var.health_check_grace_period_seconds}"
   load_balancer {
-    target_group_arn = "${aws_lb_target_group.spot_tg.arn}"
-    container_name   = "nginx"
-    container_port   = 80
+    target_group_arn                  = "${var.grafana_tg_arn}"
+    container_name                    = "${var.family}"
+    container_port                    = "${var.container_port}"
+  }
+}
+/*------------------------------Auto Scaling--------------------------------------------------------*/
+resource "aws_appautoscaling_target" "target" {
+  max_capacity                        = "${var.max_capacity}"
+  min_capacity                        = "${var.min_capacity}"
+  resource_id                         = "${var.resource_id}"
+  role_arn                            = "${var.role_arn}"
+  scalable_dimension                  = "${var.scalable_dimension}"
+  service_namespace                   = "${var.service_namespace}"
+  depends_on                          = ["aws_ecs_service.service"]
+}
+resource "aws_appautoscaling_policy" "policy" {
+  name                                = "${var.family}-cpu-as-policy"
+  service_namespace                   = "${aws_appautoscaling_target.target.service_namespace}"
+  scalable_dimension                  = "${aws_appautoscaling_target.target.scalable_dimension}"
+  resource_id                         = "${aws_appautoscaling_target.target.resource_id}"
+  policy_type                         = "TargetTrackingScaling"
+  depends_on = ["aws_appautoscaling_target.target"]
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type          = "ECSServiceAverageMemoryUtilization"
+    }
+
+    target_value                      = "${var.target_value}"
+    scale_in_cooldown                 = "${var.scale_in_cooldown}"
+    scale_out_cooldown                = "${var.scale_out_cooldown}"
   }
 }

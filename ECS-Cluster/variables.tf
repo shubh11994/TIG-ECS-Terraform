@@ -1,0 +1,12 @@
+variable "ecs_cluster_name" {}
+variable "ami_id" {}
+variable "instance_type" {}
+variable "spot_price" {}
+variable "sg_id" {}
+variable "key_name" {}
+variable "max_spot_instances" {}
+variable "min_spot_instances" {}
+variable "subnet_ids" {}
+variable "IAM_profile_arn" {}
+variable "aws_profile" {}
+variable "aws_region" {}
